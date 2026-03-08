@@ -43,10 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const geometryId = geometryIdInput.value;
         if (geometryId && window.ViewerWebSocket) {
             console.log('Loading geometry ID:', geometryId);
-            window.ViewerWebSocket.socket.send(JSON.stringify({
-                type: 'load',
-                geometryId: parseInt(geometryId)
-            }));
+            window.ViewerWebSocket.sendLoad(geometryId);
         }
     });
 

@@ -90,6 +90,16 @@ const ViewerWebSocket = {
         } else {
             console.warn('WebSocket not connected. Cannot send interaction.');
         }
+    },
+
+    sendLoad: function(geometryId) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const command = { type: 'load', geometryId: parseInt(geometryId) };
+            socket.send(JSON.stringify(command));
+            console.log('Requested geometry load:', geometryId);
+        } else {
+            console.warn('WebSocket not connected. Cannot load geometry.');
+        }
     }
 };
 
