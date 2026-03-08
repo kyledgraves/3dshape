@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D CAD Viewer</title>
+    <!-- Append a cache-busting query parameter to force browser reload -->
+    <link rel="stylesheet" href="css/viewer.css?v=11">
+</head>
+<body>
+    <div id="viewer-container">
+        <div id="placeholder">
+            <h1>3D Shape Viewer</h1>
+            <p>Click "Connect" below to start the stream</p>
+        </div>
+        <!-- The stream image source will be updated by websocket.js -->
+        <img id="stream" style="display: none;" draggable="false">
+    </div>
+    
+    <div id="controls-overlay">
+        <button id="btn-connect" class="control-btn">Connect</button>
+        <button id="btn-left" class="control-btn">Left</button>
+        <button id="btn-right" class="control-btn">Right</button>
+        <button id="btn-front" class="control-btn">Front</button>
+        <button id="btn-back" class="control-btn">Back</button>
+        <button id="btn-iso" class="control-btn">Iso</button>
+    </div>
+
+    <!-- Load scripts in order -->
+    <script src="js/websocket.js?v=11"></script>
+    <script src="js/controls.js?v=11"></script>
+    <script src="js/viewer.js?v=11"></script>
+</body>
+</html>

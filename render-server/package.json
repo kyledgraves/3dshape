@@ -1,0 +1,23 @@
+{
+  "name": "render-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "jpeg-js": "^0.4.4",
+    "playwright": "^1.58.2",
+    "puppeteer": "^24.38.0",
+    "three": "^0.183.2",
+    "uuid": "^13.0.0",
+    "ws": "^8.19.0",
+    "xvfb": "^0.4.0"
+  }
+}

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>body { margin: 0; background-color: #2a2a2a; overflow: hidden; }</style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <script>
+        let width = window.innerWidth || 800;
+        let height = window.innerHeight || 600;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x2a2a2a);
+
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.set(2, 2, 3);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(width, height);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        
+        renderer.domElement.id = 'renderCanvas';
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 2);
+        scene.add(directionalLight);
+
+        let model = null;
+
+        const loader = new THREE.GLTFLoader();
+        loader.load('/Avocado.glb', (gltf) => {
+            const rawModel = gltf.scene;
+            const box = new THREE.Box3().setFromObject(rawModel);
+            const center = box.getCenter(new THREE.Vector3());
+            rawModel.position.sub(center);
+            
+            const pivot = new THREE.Group();
+            pivot.add(rawModel);
+            
+            const pivotBox = new THREE.Box3().setFromObject(pivot);
+            const size = pivotBox.getSize(new THREE.Vector3()).length();
+            const targetSize = 2.5;
+            const scaleFactor = targetSize / size;
+            pivot.scale.setScalar(scaleFactor);
+            
+            scene.add(pivot);
+            model = pivot; 
+        }, undefined, (error) => {
+            console.error('Error loading model:', error);
+        });
+
+        let isRunning = true;
+        let lastSendTime = 0;
+        
+        function forceRender() {
+            if (!isRunning) return;
+
+            const now = Date.now();
+            if (now - lastSendTime < 50) return;
+            lastSendTime = now;
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            if (window.sendFrameToServer) {
+                const dataUrl = renderer.domElement.toDataURL('image/jpeg', 0.6);
+                window.sendFrameToServer(dataUrl).catch(() => {});
+            }
+        }
+        
+        setInterval(forceRender, 50);
+
+        window.updateCameraMode = function(mode) {
+            const dist = 4;
+            switch(mode) {
+                case 'left': camera.position.set(-dist, 0, 0); break;
+                case 'right': camera.position.set(dist, 0, 0); break;
+                case 'front': camera.position.set(0, 0, dist); break;
+                case 'back': camera.position.set(0, 0, -dist); break;
+                case 'iso': camera.position.set(dist/1.5, dist/1.5, dist/1.5); break;
+            }
+            controls.target.set(0, 0, 0);
+            camera.lookAt(controls.target);
+            // Must call update immediately so OrbitControls calculates the new spherical coordinates
+            controls.update(); 
+        };
+
+        window.applyOrbit = function(dx, dy) {
+            const angleX = 2 * Math.PI * dx / width; 
+            const angleY = 2 * Math.PI * dy / height; 
+            
+            const offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+            
+            const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -angleX);
+            offset.applyQuaternion(qY);
+            
+            const right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
+            const qX = new THREE.Quaternion().setFromAxisAngle(right, -angleY);
+            offset.applyQuaternion(qX);
+            
+            camera.position.copy(controls.target).add(offset);
+            camera.lookAt(controls.target);
+            controls.update();
+        };
+
+        window.applyPan = function(dx, dy) {
+            const offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+            const targetDistance = offset.length();
+            
+            const panX = -2 * dx * (targetDistance / height);
+            const panY = 2 * dy * (targetDistance / height);
+            
+            const right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
+            const up = new THREE.Vector3().crossVectors(offset, right).normalize();
+            
+            const panVec = new THREE.Vector3();
+            panVec.addScaledVector(right, panX);
+            panVec.addScaledVector(up, panY);
+            
+            camera.position.add(panVec);
+            controls.target.add(panVec);
+            controls.update();
+        };
+
+        window.applyZoom = function(dy) {
+            const offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+            const zoomFactor = 1.0 + (dy * 0.002);
+            offset.multiplyScalar(zoomFactor);
+            
+            if(offset.length() > 0.1 && offset.length() < 100) {
+                camera.position.copy(controls.target).add(offset);
+                controls.update();
+            }
+        };
+
+        window.resizeRenderer = function(w, h) {
+            if (w > 0 && h > 0) {
+                width = w;
+                height = h;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            }
+        };
+
+        window.addEventListener('resize', () => {
+            window.resizeRenderer(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
