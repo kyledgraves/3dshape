@@ -44,3 +44,21 @@ def get_geometry_data(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Geometry data not found")
     
     return db_geometry.data
+
+@router.get("/geometry/{id}/render-data")
+def get_geometry_for_rendering(id: int, db: Session = Depends(get_db)):
+    """Get geometry optimized for render server consumption"""
+    db_geometry = db.query(Geometry).filter(Geometry.id == id).first()
+    if not db_geometry:
+        raise HTTPException(status_code=404, detail="Geometry not found")
+    
+    return {
+        "id": db_geometry.id,
+        "format": db_geometry.format,
+        "version": db_geometry.version,
+        "vertex_count": db_geometry.vertex_count,
+        "face_count": db_geometry.face_count,
+        "bounding_box": db_geometry.bounding_box,
+        "data": db_geometry.data,
+        "part_revision_id": db_geometry.part_revision_id
+    }

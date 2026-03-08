@@ -113,3 +113,30 @@ def delete_scene_item(id: int, item_id: int, db: Session = Depends(get_db)):
     db.delete(db_item)
     db.commit()
     return None
+
+@router.post("/scenes/{id}/render")
+def render_scene(id: int, version: str = "high", db: Session = Depends(get_db)):
+    """Trigger render server to render scene with geometry from database"""
+    db_scene = db.query(Scene).filter(Scene.id == id).first()
+    if not db_scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    
+    items = db.query(SceneItem).filter(SceneItem.scene_id == id).all()
+    
+    geometry_refs = []
+    for item in items:
+        from backend.models import Geometry
+        geom = db.query(Geometry).filter(Geometry.part_revision_id == item.part_revision_id).first()
+        if geom:
+            geometry_refs.append({
+                "geometry_id": geom.id,
+                "transform": item.transform_matrix,
+                "visible": item.visibility
+            })
+    
+    return {
+        "scene_id": id,
+        "status": "rendering",
+        "version": version,
+        "items": geometry_refs
+    }
