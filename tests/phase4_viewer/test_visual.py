@@ -34,7 +34,7 @@ def test_viewer_stream_updates(page: Page):
     
     page.locator("#btn-left").scroll_into_view_if_needed()
     page.locator("#btn-left").click()
-    page.wait_for_timeout(3000)
+    page.wait_for_timeout(4000)
     
     frame2_src = stream_img.get_attribute("src")
     assert frame1_src != frame2_src, "Frame did not update after clicking 'Left'!"

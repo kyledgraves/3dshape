@@ -1,4 +1,4 @@
-const { getLatestFrame, setCameraMode, setResolution, setOrbit, setPan, setZoom } = require('./playwright-renderer');
+const { getLatestFrame, setCameraMode, setResolution, setOrbit, setPan, setZoom, loadGeometry } = require('./playwright-renderer');
 
 function handleConnection(ws) {
     ws.send(JSON.stringify({ type: 'frame', image: getLatestFrame() }));
@@ -33,6 +33,14 @@ function handleConnection(ws) {
                 await setPan(command.deltaX, command.deltaY);
             } else if (command.type === 'zoom') {
                 await setZoom(command.deltaY);
+            } else if (command.type === 'load') {
+                console.log(`Loading geometry ID: ${command.geometryId}`);
+                const result = await loadGeometry(command.geometryId);
+                if (result) {
+                    ws.send(JSON.stringify({ type: 'ack', message: `Loaded geometry ${command.geometryId}` }));
+                } else {
+                    ws.send(JSON.stringify({ type: 'error', message: 'Failed to load geometry' }));
+                }
             }
         } catch (error) {
             console.error('Failed to parse message:', error);

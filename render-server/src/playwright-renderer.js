@@ -1,12 +1,65 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const express = require('express');
+const http = require('http');
 
 let browser;
 let page;
 let latestFrameBase64 = null;
 let app;
 let server;
+
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+
+function fetchGeometryFromBackend(geometryId) {
+    return new Promise((resolve, reject) => {
+        const url = `${BACKEND_URL}/api/v1/geometry/${geometryId}/render-data`;
+        console.log(`Fetching geometry from: ${url}`);
+        
+        http.get(url, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const geometry = JSON.parse(data);
+                    console.log(`Loaded geometry: ${geometry.format} v${geometry.version}, ${geometry.vertex_count} vertices`);
+                    resolve(geometry);
+                } catch (e) {
+                    reject(new Error(`Failed to parse geometry response: ${e.message}`));
+                }
+            });
+        }).on('error', (e) => {
+            reject(new Error(`Failed to fetch geometry: ${e.message}`));
+        });
+    });
+}
+
+async function loadGeometry(geometryId) {
+    if (!page) {
+        console.log('Page not ready, cannot load geometry');
+        return null;
+    }
+    
+    try {
+        const geometry = await fetchGeometryFromBackend(geometryId);
+        
+        if (geometry && geometry.data) {
+            await page.evaluate((geomData) => {
+                if (window.loadGeometryFromData) {
+                    window.loadGeometryFromData(geomData);
+                } else {
+                    console.log('loadGeometryFromData not available, using fallback');
+                    window.pendingGeometryData = geomData;
+                }
+            }, geometry.data);
+            return geometry;
+        }
+        return null;
+    } catch (e) {
+        console.error('Failed to load geometry:', e.message);
+        return null;
+    }
+}
 
 async function initHeadlessRenderer() {
     console.log('Starting local HTTP server to host headless WebGL renderer...');
@@ -90,4 +143,4 @@ async function closeRenderer() {
     if (server) server.close();
 }
 
-module.exports = { initHeadlessRenderer, getLatestFrame, setCameraMode, setResolution, setOrbit, setPan, setZoom, closeRenderer };
+module.exports = { initHeadlessRenderer, getLatestFrame, setCameraMode, setResolution, setOrbit, setPan, setZoom, closeRenderer, loadGeometry };

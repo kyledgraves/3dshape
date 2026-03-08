@@ -34,9 +34,16 @@
         scene.add(directionalLight);
 
         let model = null;
-
         const loader = new THREE.GLTFLoader();
-        loader.load('/Avocado.glb', (gltf) => {
+
+        function clearScene() {
+            if (model) {
+                scene.remove(model);
+                model = null;
+            }
+        }
+
+        function addModel(gltf) {
             const rawModel = gltf.scene;
             const box = new THREE.Box3().setFromObject(rawModel);
             const center = box.getCenter(new THREE.Vector3());
@@ -53,8 +60,56 @@
             
             scene.add(pivot);
             model = pivot; 
+        }
+
+        window.loadGeometryFromData = function(geometryData) {
+            console.log('Loading geometry from database data');
+            
+            if (!geometryData) {
+                console.error('No geometry data provided');
+                return;
+            }
+            
+            clearScene();
+            
+            // Try to parse as base64 GLB
+            try {
+                // If it's a base64 string, convert to blob URL
+                if (typeof geometryData === 'string') {
+                    // Check if it's a data URL or raw base64
+                    const base64Data = geometryData.startsWith('data:') 
+                        ? geometryData.split(',')[1] 
+                        : geometryData;
+                    
+                    const binaryString = atob(base64Data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    const blob = new Blob([bytes], { type: 'model/gltf-binary' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    loader.load(url, (gltf) => {
+                        addModel(gltf);
+                        URL.revokeObjectURL(url);
+                        console.log('Geometry loaded successfully from database');
+                    }, undefined, (error) => {
+                        console.error('Error loading geometry from data:', error);
+                    });
+                } else {
+                    console.warn('Geometry data is not a string, cannot load');
+                }
+            } catch (e) {
+                console.error('Failed to parse geometry data:', e);
+            }
+        };
+
+        // Load default model from file (fallback)
+        loader.load('/Avocado.glb', (gltf) => {
+            addModel(gltf);
         }, undefined, (error) => {
-            console.error('Error loading model:', error);
+            console.error('Error loading default model:', error);
         });
 
         let isRunning = true;
