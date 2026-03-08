@@ -36,6 +36,30 @@
         let model = null;
         const loader = new THREE.GLTFLoader();
 
+        // Backend URL for fetching geometry
+        const BACKEND_URL = window.BACKEND_URL || 'http://localhost:8000';
+
+        // Fetch and load geometry directly from backend
+        window.loadGeometryById = async function(geometryId) {
+            console.log('Fetching geometry ID:', geometryId);
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/v1/geometry/${geometryId}/render-data`);
+                const geometry = await response.json();
+                
+                if (!geometry || !geometry.data) {
+                    console.error('No geometry data received');
+                    return;
+                }
+                
+                console.log(`Loaded geometry: ${geometry.format} v${geometry.version}, ${geometry.vertex_count} vertices`);
+                
+                await window.loadGeometryFromData(geometry.data);
+            } catch (e) {
+                console.error('Failed to fetch geometry:', e);
+            }
+        };
+
         function clearScene() {
             if (model) {
                 scene.remove(model);

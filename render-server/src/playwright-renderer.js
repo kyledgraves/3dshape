@@ -41,20 +41,17 @@ async function loadGeometry(geometryId) {
     }
     
     try {
-        const geometry = await fetchGeometryFromBackend(geometryId);
+        // Just tell the page to fetch the geometry directly from the backend
+        // This avoids passing large data through page.evaluate
+        await page.evaluate((id) => {
+            if (window.loadGeometryById) {
+                window.loadGeometryById(id);
+            } else {
+                console.error('loadGeometryById not available');
+            }
+        }, geometryId);
         
-        if (geometry && geometry.data) {
-            await page.evaluate((geomData) => {
-                if (window.loadGeometryFromData) {
-                    window.loadGeometryFromData(geomData);
-                } else {
-                    console.log('loadGeometryFromData not available, using fallback');
-                    window.pendingGeometryData = geomData;
-                }
-            }, geometry.data);
-            return geometry;
-        }
-        return null;
+        return { id: geometryId, status: 'loading' };
     } catch (e) {
         console.error('Failed to load geometry:', e.message);
         return null;

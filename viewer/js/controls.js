@@ -35,6 +35,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.ViewerWebSocket) window.ViewerWebSocket.sendCommand('view', 'iso');
     });
 
+    // Load geometry button
+    const btnLoad = document.getElementById('btn-load');
+    const geometryIdInput = document.getElementById('geometry-id');
+
+    btnLoad.addEventListener('click', () => {
+        const geometryId = geometryIdInput.value;
+        if (geometryId && window.ViewerWebSocket) {
+            console.log('Loading geometry ID:', geometryId);
+            window.ViewerWebSocket.socket.send(JSON.stringify({
+                type: 'load',
+                geometryId: parseInt(geometryId)
+            }));
+        }
+    });
+
     // === MOUSE CONTROLS FOR ORBIT / PAN / ZOOM ===
     
     let isDragging = false;
